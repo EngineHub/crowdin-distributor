@@ -50,6 +50,8 @@ public class Main {
         ENV_NAMESPACE.create("token", Loaders.forString(), "");
     private static final PropOrEnvConfigOption<Long> CROWDIN_PROJECT_ID =
         ENV_NAMESPACE.subspace("project").create("id", Loaders.forLong(), Long.MIN_VALUE);
+    private static final PropOrEnvConfigOption<String> OUTPUT_FILE =
+        ENV_NAMESPACE.create("output", Loaders.forString(), "");
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -69,6 +71,12 @@ public class Main {
             CROWDIN_TOKEN.getSystemPropertyName(), CROWDIN_TOKEN.getEnvironmentVariableName()
         );
         checkState(projectId >= 0, "Invalid project ID %s", projectId);
+        var outputFile = OUTPUT_FILE.get().trim();
+        checkState(
+            !outputFile.isEmpty(),
+            "Output file must be provided (via -D%s or %s)",
+            OUTPUT_FILE.getSystemPropertyName(), OUTPUT_FILE.getEnvironmentVariableName()
+        );
         var crowdinClient = new SimpleCrowdin(token, projectId);
 
         var build = crowdinClient.buildProjectTranslation(new CreateProjectBuild(
@@ -130,7 +138,7 @@ public class Main {
         }
 
         System.err.println("Patching complete!");
-        var dest = Path.of("test.zip");
+        var dest = Path.of(outputFile);
         Files.move(temporaryFile, dest, StandardCopyOption.REPLACE_EXISTING);
         System.err.println("Output at " + dest);
     }
