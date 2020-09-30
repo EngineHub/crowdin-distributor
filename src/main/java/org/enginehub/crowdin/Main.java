@@ -70,7 +70,6 @@ public class Main {
             CROWDIN_TOKEN.getSystemPropertyName(), CROWDIN_TOKEN.getEnvironmentVariableName()
         );
         checkState(projectId >= 0, "Invalid project ID %s", projectId);
-        var httpClient = new OkHttpClient.Builder().build();
         var crowdinClient = new SimpleCrowdin(token, projectId);
 
         var build = crowdinClient.buildProjectTranslation(new CreateProjectBuild(
