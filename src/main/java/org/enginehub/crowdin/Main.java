@@ -26,7 +26,6 @@ import com.techshroom.jungle.Loaders;
 import com.techshroom.jungle.PropOrEnvConfigOption;
 import com.techshroom.jungle.PropOrEnvNamespace;
 import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
 import org.enginehub.crowdin.client.SimpleCrowdin;
 import org.enginehub.crowdin.client.request.CreateProjectBuild;
 import org.enginehub.crowdin.client.response.FileInfo;
@@ -129,6 +128,7 @@ public class Main {
                 }
             }
         }
+
         System.err.println("Patching complete!");
         var dest = Path.of("test.zip");
         Files.move(temporaryFile, dest, StandardCopyOption.REPLACE_EXISTING);
@@ -136,7 +136,7 @@ public class Main {
     }
 
     private static boolean validateTree(Path root, String sourceFilePath,
-                                     TranslationValidator validator) throws IOException {
+                                        TranslationValidator validator) throws IOException {
         var sourcePathRelative = root.getFileSystem().getPath(
             sourceFilePath.replaceFirst("^/+", "")
         );

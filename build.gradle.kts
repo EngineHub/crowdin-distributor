@@ -1,7 +1,15 @@
+import org.jfrog.gradle.plugin.artifactory.dsl.ArtifactoryPluginConvention
+import org.jfrog.gradle.plugin.artifactory.dsl.DoubleDelegateWrapper
+import org.jfrog.gradle.plugin.artifactory.dsl.PublisherConfig
+import org.jfrog.gradle.plugin.artifactory.task.ArtifactoryTask
+
 plugins {
     java
     application
+    `maven-publish`
     id("net.minecrell.licenser") version "0.4.1"
+    id("net.researchgate.release") version "2.8.1"
+    id("com.jfrog.artifactory") version "4.17.2"
 }
 
 license {
@@ -13,16 +21,30 @@ license {
     header = rootProject.file("HEADER.txt")
 }
 
+release {
+    tagTemplate = "v\${version}"
+    buildTasks = listOf<String>()
+}
+
+val javaVersion = JavaVersion.VERSION_15
+
 java {
-    sourceCompatibility = JavaVersion.VERSION_15
-    targetCompatibility = sourceCompatibility
+    sourceCompatibility = javaVersion
+    targetCompatibility = javaVersion
     withSourcesJar()
     withJavadocJar()
 }
 
 tasks.withType<JavaCompile> {
-    options.release.set(JavaVersion.VERSION_15.majorVersion.toInt())
+    options.release.set(javaVersion.majorVersion.toInt())
     options.compilerArgs = listOf("--enable-preview")
+}
+
+tasks.withType<Javadoc> {
+    (options as CoreJavadocOptions).run {
+        addBooleanOption("-enable-preview", true)
+        addStringOption("-release", javaVersion.majorVersion)
+    }
 }
 
 repositories {
@@ -59,3 +81,46 @@ application {
 tasks.named<Test>("test") {
     useJUnitPlatform()
 }
+
+configure<PublishingExtension> {
+    publications {
+        register<MavenPublication>("maven") {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+
+            from(components["java"])
+            artifact(tasks.named("distZip")) {
+                classifier = "bundle"
+            }
+        }
+    }
+}
+
+val ext = extensions.extraProperties
+if (!project.hasProperty("artifactory_contextUrl"))
+    ext["artifactory_contextUrl"] = "http://localhost"
+if (!project.hasProperty("artifactory_user"))
+    ext["artifactory_user"] = "guest"
+if (!project.hasProperty("artifactory_password"))
+    ext["artifactory_password"] = ""
+configure<ArtifactoryPluginConvention> {
+    publish(delegateClosureOf<PublisherConfig> {
+        setContextUrl(project.property("artifactory_contextUrl"))
+        setPublishIvy(false)
+        setPublishPom(true)
+        repository(delegateClosureOf<DoubleDelegateWrapper> {
+            invokeMethod("setRepoKey", when {
+                "SNAPSHOT" in project.version.toString() -> "libs-snapshot-local"
+                else -> "libs-release-local"
+            })
+            invokeMethod("setUsername", project.property("artifactory_user"))
+            invokeMethod("setPassword", project.property("artifactory_password"))
+        })
+        defaults(delegateClosureOf<ArtifactoryTask> {
+            publications("maven")
+            setPublishArtifacts(true)
+        })
+    })
+}
+
