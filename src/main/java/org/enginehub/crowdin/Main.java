@@ -20,6 +20,8 @@
 
 package org.enginehub.crowdin;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.techshroom.jungle.Loaders;
 import com.techshroom.jungle.PropOrEnvConfigOption;
 import com.techshroom.jungle.PropOrEnvNamespace;
@@ -34,8 +36,8 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -49,6 +51,8 @@ public class Main {
         ENV_NAMESPACE.create("token", Loaders.forString(), "");
     private static final PropOrEnvConfigOption<Long> CROWDIN_PROJECT_ID =
         ENV_NAMESPACE.subspace("project").create("id", Loaders.forLong(), Long.MIN_VALUE);
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private static final MediaType MEDIA_ZIP = MediaType.get("application/zip");
 
@@ -102,19 +106,61 @@ public class Main {
         System.err.println("Patching in source files...");
         try (var zipFs = FileSystems.newFileSystem(temporaryFile)) {
             for (FileInfo fileInfo : crowdinClient.listFiles().collect(Collectors.toList())) {
-                System.err.println("Patching in " + fileInfo.path());
+                String path = fileInfo.path();
+                System.err.println("Patching in " + path);
+                Path zipFsPath = zipFs.getPath(path);
                 try (var response = crowdinClient.downloadFile(fileInfo.id())) {
                     var body = Objects.requireNonNull(response.body());
-                    Path zipFsPath = zipFs.getPath(fileInfo.path());
                     try (var output = zipFs.provider().newOutputStream(zipFsPath)) {
                         body.byteStream().transferTo(output);
                     }
                 }
+                if (zipFsPath.toString().endsWith(".json")) {
+                    System.err.println("Validating JSON language file " + path);
+                    Map<String, String> data = MAPPER.readValue(
+                        Files.readString(zipFsPath),
+                        new TypeReference<>() {
+                        }
+                    );
+                    var validator = new TranslationValidator(data);
+                    checkState(
+                        validateTree(zipFs.getPath("/"), path, validator),
+                        "Validation failures occurred"
+                    );
+                }
             }
         }
         System.err.println("Patching complete!");
-        var dest = Paths.get("test.zip");
+        var dest = Path.of("test.zip");
         Files.move(temporaryFile, dest, StandardCopyOption.REPLACE_EXISTING);
         System.err.println("Output at " + dest);
+    }
+
+    private static boolean validateTree(Path root, String sourceFilePath,
+                                     TranslationValidator validator) throws IOException {
+        var sourcePathRelative = root.getFileSystem().getPath(
+            sourceFilePath.replaceFirst("^/+", "")
+        );
+        var success = true;
+        try (var files = Files.list(root)
+            .filter(Files::isDirectory)
+            .map(p -> p.resolve(sourcePathRelative))
+            .filter(Files::exists)) {
+            for (var iter = files.iterator(); iter.hasNext(); ) {
+                var next = iter.next();
+                System.err.println("==> Against " + next);
+                Map<String, String> data = MAPPER.readValue(
+                    Files.readString(next),
+                    new TypeReference<>() {
+                    }
+                );
+                var failure = validator.validate(next.toString(), data);
+                if (failure != null) {
+                    System.err.println(failure);
+                    success = false;
+                }
+            }
+        }
+        return success;
     }
 }
