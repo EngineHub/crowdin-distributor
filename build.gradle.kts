@@ -64,11 +64,14 @@ dependencies {
     implementation("com.google.guava:guava:29.0-jre")
     implementation("com.squareup.okhttp3:okhttp:4.9.0")
     implementation("com.techshroom:greenish-jungle:0.0.3")
+    implementation("org.jfrog.artifactory.client:artifactory-java-client-services:2.8.6")
 
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.12.0-SNAPSHOT"))
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.core:jackson-annotations")
+
+    implementation("org.slf4j:slf4j-simple:1.7.30")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
@@ -76,6 +79,7 @@ dependencies {
 
 application {
     mainClassName = "org.enginehub.crowdin.Main"
+    applicationDefaultJvmArgs = listOf("--enable-preview")
 }
 
 tasks.named<Test>("test") {
