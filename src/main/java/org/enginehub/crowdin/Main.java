@@ -22,7 +22,6 @@ package org.enginehub.crowdin;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.hash.Hashing;
 import com.techshroom.jungle.Loaders;
 import com.techshroom.jungle.PropOrEnvConfigOption;
 import com.techshroom.jungle.PropOrEnvNamespace;
