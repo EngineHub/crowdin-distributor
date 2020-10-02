@@ -36,6 +36,8 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Predicate;
@@ -65,6 +67,8 @@ public class Main {
         ARTIFACTORY_NAMESPACE.create("password", Loaders.forString(), "");
     private static final PropOrEnvConfigOption<Long> BUILD_NUMBER =
         ENV_NAMESPACE.subspace("build").create("number", Loaders.forLong(), Long.MIN_VALUE);
+    private static final PropOrEnvConfigOption<Boolean> ONLY_IF_RECENTLY_CHANGED =
+        ENV_NAMESPACE.subspace("on").create("change", Loaders.forBoolean(), false);
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -88,6 +92,15 @@ public class Main {
         checkState(projectId >= 0, "Invalid project ID %s", projectId);
 
         var crowdinClient = new SimpleCrowdin(token, projectId);
+
+        if (ONLY_IF_RECENTLY_CHANGED.get() == Boolean.TRUE) {
+            var project = crowdinClient.getProject();
+            var lastActivity = project.lastActivity();
+            if (lastActivity.isBefore(Instant.now().minus(1, ChronoUnit.DAYS))) {
+                System.err.println("Not proceeding with build, last activity was at " + lastActivity);
+                return;
+            }
+        }
 
         ProjectBuild build = buildProjectTranslations(crowdinClient);
         Path temporaryFile = downloadTranslationsBundle(crowdinClient, build);

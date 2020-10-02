@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.collect.Streams;
 import com.google.common.net.HttpHeaders;
@@ -37,6 +38,7 @@ import org.enginehub.crowdin.client.request.CreateProjectBuild;
 import org.enginehub.crowdin.client.response.FileDownload;
 import org.enginehub.crowdin.client.response.FileInfo;
 import org.enginehub.crowdin.client.response.Page;
+import org.enginehub.crowdin.client.response.Project;
 import org.enginehub.crowdin.client.response.ProjectBuild;
 import org.enginehub.crowdin.jackson.InsideDataModule;
 import org.jetbrains.annotations.Contract;
@@ -65,7 +67,7 @@ public class SimpleCrowdin {
     }
 
     private final ObjectMapper mapper = new ObjectMapper()
-        .registerModules(new InsideDataModule());
+        .registerModules(new InsideDataModule(), new JavaTimeModule());
     private final long projectId;
     private final OkHttpClient httpClient;
     private final String authorizationHeaderValue;
@@ -114,6 +116,11 @@ public class SimpleCrowdin {
 
     private HttpUrl projectRelativeUrl(String url) {
         return baseRelativeUrl("/projects/" + projectId + url);
+    }
+
+    public Project getProject() {
+        return executeStandard(GET, projectRelativeUrl(""), null, new TypeReference<>() {
+        });
     }
 
     public Stream<FileInfo> listFiles() {
