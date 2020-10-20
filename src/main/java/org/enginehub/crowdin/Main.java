@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.techshroom.jungle.Loaders;
 import com.techshroom.jungle.PropOrEnvConfigOption;
 import com.techshroom.jungle.PropOrEnvNamespace;
+import com.vdurmont.semver4j.Semver;
 import okhttp3.MediaType;
 import org.enginehub.crowdin.client.SimpleCrowdin;
 import org.enginehub.crowdin.client.request.CreateProjectBuild;
@@ -222,12 +223,12 @@ public class Main {
             .build();
 
         var fixedGroup = gradleData.group().replace('.', '/');
-        var version = gradleData.version();
+        var fixedVersion = new Semver(gradleData.version()).withClearedSuffixAndBuild().toString();
 
         var path = String.join(
             "/",
-            fixedGroup, module, version,
-            module + "-" + version + "+" + buildNumber + ".zip"
+            fixedGroup, module, fixedVersion,
+            module + "-" + fixedVersion + "+" + buildNumber + ".zip"
         );
 
         client.repository(artifactoryRepo)
