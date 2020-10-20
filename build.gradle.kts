@@ -29,8 +29,12 @@ release {
 val javaVersion = JavaVersion.VERSION_15
 
 java {
-    sourceCompatibility = javaVersion
-    targetCompatibility = javaVersion
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(javaVersion.majorVersion))
+    }
+}
+
+java {
     withSourcesJar()
     withJavadocJar()
 }
@@ -61,10 +65,10 @@ repositories {
 dependencies {
     compileOnly("org.jetbrains:annotations:20.1.0")
 
-    implementation("com.google.guava:guava:29.0-jre")
+    implementation("com.google.guava:guava:30.0-jre")
     implementation("com.squareup.okhttp3:okhttp:4.9.0")
     implementation("com.techshroom:greenish-jungle:0.0.3")
-    implementation("org.jfrog.artifactory.client:artifactory-java-client-services:2.8.6")
+    implementation("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.1")
     implementation("com.vdurmont:semver4j:3.1.0")
 
     implementation(platform("com.fasterxml.jackson:jackson-bom:2.12.0-SNAPSHOT"))
