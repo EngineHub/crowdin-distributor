@@ -18,14 +18,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.enginehub.crowdin.client.response;
+package org.enginehub.crowdin.client;
 
-import org.enginehub.crowdin.jackson.InsideData;
+import java.io.IOException;
 
-import java.time.Instant;
-
-@InsideData
-public record Project(
-    Instant lastActivity
-) {
+@FunctionalInterface
+public interface IOConsumer<T> {
+    void consume(T value) throws IOException;
 }

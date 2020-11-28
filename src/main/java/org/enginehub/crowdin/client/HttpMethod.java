@@ -21,5 +21,5 @@
 package org.enginehub.crowdin.client;
 
 public enum HttpMethod {
-    GET, POST
+    GET, POST, PUT
 }

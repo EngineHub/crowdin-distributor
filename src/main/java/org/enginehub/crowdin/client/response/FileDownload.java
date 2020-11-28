@@ -20,11 +20,9 @@
 
 package org.enginehub.crowdin.client.response;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.enginehub.crowdin.jackson.InsideData;
 
 @InsideData
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record FileDownload(
     String url
 ) {

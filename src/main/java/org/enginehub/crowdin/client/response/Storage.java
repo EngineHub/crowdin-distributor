@@ -22,10 +22,9 @@ package org.enginehub.crowdin.client.response;
 
 import org.enginehub.crowdin.jackson.InsideData;
 
-import java.time.Instant;
-
 @InsideData
-public record Project(
-    Instant lastActivity
+public record Storage(
+    int id,
+    String fileName
 ) {
 }

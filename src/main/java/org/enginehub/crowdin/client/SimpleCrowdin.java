@@ -22,6 +22,7 @@ package org.enginehub.crowdin.client;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -35,11 +36,13 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.enginehub.crowdin.client.request.CreateProjectBuild;
+import org.enginehub.crowdin.client.request.ReplaceFileFromStorage;
 import org.enginehub.crowdin.client.response.FileDownload;
 import org.enginehub.crowdin.client.response.FileInfo;
 import org.enginehub.crowdin.client.response.Page;
 import org.enginehub.crowdin.client.response.Project;
 import org.enginehub.crowdin.client.response.ProjectBuild;
+import org.enginehub.crowdin.client.response.Storage;
 import org.enginehub.crowdin.jackson.InsideDataModule;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.Nullable;
@@ -48,12 +51,15 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
 import static org.enginehub.crowdin.client.HttpMethod.GET;
 import static org.enginehub.crowdin.client.HttpMethod.POST;
+import static org.enginehub.crowdin.client.HttpMethod.PUT;
 
 /**
  * Actual Crowdin SDK is really bad. This is a tiny replacement.
@@ -67,7 +73,8 @@ public class SimpleCrowdin {
     }
 
     private final ObjectMapper mapper = new ObjectMapper()
-        .registerModules(new InsideDataModule(), new JavaTimeModule());
+        .registerModules(new InsideDataModule(), new JavaTimeModule())
+        .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
     private final long projectId;
     private final OkHttpClient httpClient;
     private final String authorizationHeaderValue;
@@ -118,6 +125,20 @@ public class SimpleCrowdin {
         return baseRelativeUrl("/projects/" + projectId + url);
     }
 
+    public Storage createStorage(String fileName, RequestBody content) {
+        checkArgument(
+            MediaType.get("application/octet-stream").equals(content.contentType()),
+            "The content type must be application/octet-stream"
+        );
+        return execute(
+            req -> req
+                .post(content)
+                .url(baseRelativeUrl("/storages"))
+                .header("Crowdin-API-FileName", fileName),
+            mapper.constructType(Storage.class)
+        );
+    }
+
     public Project getProject() {
         return executeStandard(GET, projectRelativeUrl(""), null, new TypeReference<>() {
         });
@@ -130,6 +151,12 @@ public class SimpleCrowdin {
 
     public Response downloadFile(long fileId) {
         return executeDownload(projectRelativeUrl("/files/" + fileId + "/download"));
+    }
+
+    public void updateFile(long fileId, ReplaceFileFromStorage request) {
+        // inferred deserialization to Object, since there is a response, we just don't use it
+        executeStandard(PUT, projectRelativeUrl("/files/" + fileId), request, new TypeReference<>() {
+        });
     }
 
     public ProjectBuild buildProjectTranslation(CreateProjectBuild request) {
@@ -221,7 +248,7 @@ public class SimpleCrowdin {
     @Contract("_, _, _, null -> null; _, _, _, !null -> !null")
     private <I, O> @Nullable O executeStandard(HttpMethod method, HttpUrl url, @Nullable I requestBody,
                                                @Nullable JavaType responseType) {
-        RequestBody mappedRequestBody = null;
+        RequestBody mappedRequestBody;
         if (requestBody != null) {
             try {
                 mappedRequestBody = RequestBody.create(
@@ -230,13 +257,24 @@ public class SimpleCrowdin {
             } catch (JsonProcessingException e) {
                 throw new UncheckedIOException(e);
             }
+        } else {
+            mappedRequestBody = null;
         }
-        var request = new Request.Builder()
-            .url(url)
-            .method(method.name(), mappedRequestBody)
-            .header(HttpHeaders.AUTHORIZATION, authorizationHeaderValue)
-            .build();
-        try (var response = httpClient.newCall(request).execute()) {
+        return execute(
+            req -> req
+                .url(url)
+                .method(method.name(), mappedRequestBody),
+            responseType
+        );
+    }
+
+    @Contract("_, null -> null; _, !null -> !null")
+    private <O> @Nullable O execute(Consumer<Request.Builder> requestConfig,
+                                    @Nullable JavaType responseType) {
+        var requestBuilder = new Request.Builder()
+            .header(HttpHeaders.AUTHORIZATION, authorizationHeaderValue);
+        requestConfig.accept(requestBuilder);
+        try (var response = httpClient.newCall(requestBuilder.build()).execute()) {
             var body = response.body();
             handleResponseFail(response);
 

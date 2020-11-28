@@ -18,14 +18,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package org.enginehub.crowdin.client.response;
+package org.enginehub.crowdin.client.request;
 
-import org.enginehub.crowdin.jackson.InsideData;
-
-import java.time.Instant;
-
-@InsideData
-public record Project(
-    Instant lastActivity
+public record ReplaceFileFromStorage(
+    int storageId
 ) {
 }

@@ -20,12 +20,10 @@
 
 package org.enginehub.crowdin.client.response;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonValue;
 import org.enginehub.crowdin.jackson.InsideData;
 
 @InsideData
-@JsonIgnoreProperties(ignoreUnknown = true)
 public record ProjectBuild(
     long id,
     Status status,

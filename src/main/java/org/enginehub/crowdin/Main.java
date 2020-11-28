@@ -27,8 +27,10 @@ import com.techshroom.jungle.PropOrEnvConfigOption;
 import com.techshroom.jungle.PropOrEnvNamespace;
 import com.vdurmont.semver4j.Semver;
 import okhttp3.MediaType;
+import okhttp3.RequestBody;
 import org.enginehub.crowdin.client.SimpleCrowdin;
 import org.enginehub.crowdin.client.request.CreateProjectBuild;
+import org.enginehub.crowdin.client.request.ReplaceFileFromStorage;
 import org.enginehub.crowdin.client.response.FileInfo;
 import org.enginehub.crowdin.client.response.ProjectBuild;
 import org.jfrog.artifactory.client.ArtifactoryClientBuilder;
@@ -54,6 +56,10 @@ public class Main {
         ENV_NAMESPACE.create("token", Loaders.forString(), "");
     private static final PropOrEnvConfigOption<Long> CROWDIN_PROJECT_ID =
         ENV_NAMESPACE.subspace("project").create("id", Loaders.forLong(), Long.MIN_VALUE);
+    private static final PropOrEnvConfigOption<Path> SOURCE_FILE =
+        ENV_NAMESPACE.subspace("source").create(
+            "file", Loaders.forString().andThen(s -> s.map(Path::of)), Path.of("/")
+        );
     private static final PropOrEnvConfigOption<String> MODULE =
         ENV_NAMESPACE.create("module", Loaders.forString(), "");
     private static final PropOrEnvNamespace ARTIFACTORY_NAMESPACE =
@@ -91,8 +97,11 @@ public class Main {
         var token = require("Token", CROWDIN_TOKEN, t -> !t.isBlank());
         var projectId = require("Project ID", CROWDIN_PROJECT_ID, id -> id != Long.MIN_VALUE);
         checkState(projectId >= 0, "Invalid project ID %s", projectId);
+        var sourceFile = require("Source File", SOURCE_FILE, Files::isRegularFile);
 
         var crowdinClient = new SimpleCrowdin(token, projectId);
+
+        uploadSourceToCrowdin(crowdinClient, sourceFile);
 
         if (ONLY_IF_RECENTLY_CHANGED.get() == Boolean.TRUE) {
             var project = crowdinClient.getProject();
@@ -107,6 +116,26 @@ public class Main {
         Path temporaryFile = downloadTranslationsBundle(crowdinClient, build);
         patchInSourceFiles(crowdinClient, temporaryFile);
         uploadToArtifactory(temporaryFile);
+    }
+
+    private static void uploadSourceToCrowdin(SimpleCrowdin crowdinClient, Path sourceFile) {
+        var name =  sourceFile.getFileName().toString();
+        System.err.println("Checking for existing " + name + " file...");
+        var fileId = crowdinClient.listFiles()
+            .filter(fileInfo -> fileInfo.path().equals("/" + name))
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("No file already present as " + name))
+            .id();
+        System.err.println("Found " + fileId + " for " + name);
+        System.err.println("Uploading local content to storage...");
+        var storage = crowdinClient.createStorage(
+            name,
+            RequestBody.create(sourceFile.toFile(), MediaType.get("application/octet-stream"))
+        );
+        System.err.println("Created storage " + storage.id() + " for " + name);
+        System.err.println("Replacing " + fileId + " with content in " + storage.id());
+        crowdinClient.updateFile(fileId, new ReplaceFileFromStorage(storage.id()));
+        System.err.println("Replaced!");
     }
 
     private static ProjectBuild buildProjectTranslations(SimpleCrowdin crowdinClient) {
