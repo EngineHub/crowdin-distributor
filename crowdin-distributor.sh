@@ -18,6 +18,8 @@ export CROWDIN_DISTRIBUTOR_PROJECT_ID=""
 export CROWDIN_DISTRIBUTOR_MODULE=""
 export CROWDIN_DISTRIBUTOR_ARTIFACTORY_URL=""
 export CROWDIN_DISTRIBUTOR_ARTIFACTORY_REPO=""
+## Full path to the source file, will be uploaded to crowdin, must already have uploaded at least once (will not create a new file)
+export CROWDIN_DISTRIBUTOR_SOURCE_FILE=""
 # Artifactory Creds & Build Number is set by CI
 export CROWDIN_DISTRIBUTOR_OPTS="--enable-preview"
 "./build/crowdin-distributor-$cdist_path_version/bin/crowdin-distributor"
