@@ -7,9 +7,9 @@ plugins {
     java
     application
     `maven-publish`
-    id("net.minecrell.licenser") version "0.4.1"
+    id("org.cadixdev.licenser") version "0.6.0"
     id("net.researchgate.release") version "2.8.1"
-    id("com.jfrog.artifactory") version "4.17.2"
+    id("com.jfrog.artifactory") version "4.21.0"
 }
 
 license {
@@ -18,7 +18,7 @@ license {
         set("organization", project.property("organization"))
         set("url", project.property("url"))
     }
-    header = rootProject.file("HEADER.txt")
+    header(rootProject.file("HEADER.txt"))
 }
 
 release {
@@ -26,7 +26,7 @@ release {
     buildTasks = listOf<String>()
 }
 
-val javaVersion = JavaVersion.VERSION_15
+val javaVersion = JavaVersion.VERSION_16
 
 java {
     toolchain {
@@ -36,42 +36,22 @@ java {
 
 java {
     withSourcesJar()
-    withJavadocJar()
-}
-
-tasks.withType<JavaCompile> {
-    options.release.set(javaVersion.majorVersion.toInt())
-    options.compilerArgs = listOf("--enable-preview")
-}
-
-tasks.withType<Javadoc> {
-    (options as CoreJavadocOptions).run {
-        addBooleanOption("-enable-preview", true)
-        addStringOption("-release", javaVersion.majorVersion)
-    }
 }
 
 repositories {
-    jcenter()
-    maven {
-        name = "Sonatype Snapshots"
-        url = uri("https://oss.sonatype.org/content/repositories/snapshots/")
-        mavenContent {
-            snapshotsOnly()
-        }
-    }
+    mavenCentral()
 }
 
 dependencies {
-    compileOnly("org.jetbrains:annotations:20.1.0")
+    compileOnly("org.jetbrains:annotations:21.0.1")
 
-    implementation("com.google.guava:guava:30.0-jre")
-    implementation("com.squareup.okhttp3:okhttp:4.9.0")
+    implementation("com.google.guava:guava:30.1.1-jre")
+    implementation("com.squareup.okhttp3:okhttp:4.9.1")
     implementation("com.techshroom:greenish-jungle:0.0.3")
-    implementation("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.1")
+    implementation("org.jfrog.artifactory.client:artifactory-java-client-services:2.9.2")
     implementation("com.vdurmont:semver4j:3.1.0")
 
-    implementation(platform("com.fasterxml.jackson:jackson-bom:2.12.0-SNAPSHOT"))
+    implementation(platform("com.fasterxml.jackson:jackson-bom:2.12.3"))
     implementation("com.fasterxml.jackson.core:jackson-core")
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.core:jackson-annotations")
@@ -79,13 +59,12 @@ dependencies {
 
     implementation("org.slf4j:slf4j-simple:1.7.30")
 
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
 }
 
 application {
-    mainClassName = "org.enginehub.crowdin.Main"
-    applicationDefaultJvmArgs = listOf("--enable-preview")
+    mainClass.set("org.enginehub.crowdin.Main")
 }
 
 tasks.named<Test>("test") {
