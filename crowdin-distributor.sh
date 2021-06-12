@@ -21,5 +21,5 @@ export CROWDIN_DISTRIBUTOR_ARTIFACTORY_REPO=""
 ## Full path to the source file, will be uploaded to crowdin, must already have uploaded at least once (will not create a new file)
 export CROWDIN_DISTRIBUTOR_SOURCE_FILE=""
 # Artifactory Creds & Build Number is set by CI
-export CROWDIN_DISTRIBUTOR_OPTS="--enable-preview"
+export CROWDIN_DISTRIBUTOR_OPTS=""
 "./build/crowdin-distributor-$cdist_path_version/bin/crowdin-distributor"
