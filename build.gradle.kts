@@ -105,3 +105,7 @@ configure<ArtifactoryPluginConvention> {
         isIvy = false
     }
 }
+
+tasks.artifactoryPublish {
+    publications("maven")
+}
