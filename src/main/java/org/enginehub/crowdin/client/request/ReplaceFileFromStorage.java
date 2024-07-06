@@ -21,6 +21,6 @@
 package org.enginehub.crowdin.client.request;
 
 public record ReplaceFileFromStorage(
-    int storageId
+    long storageId
 ) {
 }

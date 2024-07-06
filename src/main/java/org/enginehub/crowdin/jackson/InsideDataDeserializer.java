@@ -71,7 +71,7 @@ public class InsideDataDeserializer<T> extends StdDeserializer<T> implements Con
         if (p.currentToken() == JsonToken.START_OBJECT) {
             p.nextToken();
         }
-        String name = p.getCurrentName();
+        String name = p.currentName();
         while (!"data".equals(name)) {
             p.nextToken();
             p.skipChildren();

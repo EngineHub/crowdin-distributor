@@ -24,7 +24,7 @@ import org.enginehub.crowdin.jackson.InsideData;
 
 @InsideData
 public record Storage(
-    int id,
+    long id,
     String fileName
 ) {
 }
